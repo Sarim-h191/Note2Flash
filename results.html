@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Flashcards - Note2Flash</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Your Flashcards</h1>
+            <p>Topic: <strong>{{ topic }}</strong></p>
+            <a href="/" class="back-btn">← Create More Flashcards</a>
+        </header>
+        
+        <main>
+            <div class="flashcards-container">
+                {% for flashcard in flashcards %}
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="card-number">Card {{ loop.index }}</div>
+                            <h3>Question:</h3>
+                            <p>{{ flashcard.question }}</p>
+                            <div class="flip-hint">Click to see answer</div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="card-number">Card {{ loop.index }}</div>
+                            <h3>Answer:</h3>
+                            <p>{{ flashcard.answer }}</p>
+                            <div class="flip-hint">Click to see question</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="study-tips">
+                <h3>Study Tips:</h3>
+                <ul>
+                    <li>Click each card to flip between question and answer</li>
+                    <li>Try to answer the question before looking at the answer</li>
+                    <li>Review cards you find difficult multiple times</li>
+                    <li>Study in short sessions for better retention</li>
+                </ul>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // JavaScript function to flip flashcards when clicked
+        function flipCard(card) {
+            card.classList.toggle('flipped');
+        }
+    </script>
+</body>
+</html>
