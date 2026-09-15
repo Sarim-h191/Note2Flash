@@ -1,38 +1,45 @@
-# Note2Flash  
+# Note2Flash
 
-An AI-powered flashcard generator that helps students study smarter by converting lecture notes into concise flashcards. Built with Python, Flask, and OpenAI’s GPT models.  
+The original flashcard prototype that preceded the broader StudyStack project. A Python/Flask app sends a topic or notes to OpenAI and displays question-and-answer cards that can be flipped in the browser. Generated answers need review; study effectiveness has not been measured.
 
-## Features  
-- Converts lecture notes or topics into structured Q&A flashcards  
-- Uses OpenAI’s GPT model to create concise, educational questions and answers  
-- Simple web interface built with Flask, HTML, and CSS  
-- Supports customization of number of flashcards (1–10)  
+## Run locally (Python 3.11 or 3.12)
 
-## How to Run  
+```bash
+git clone https://github.com/Sarim-h191/Note2Flash.git
+cd Note2Flash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+export OPENAI_API_KEY='your-key-here'
+python app.py
+```
 
-1. Clone the repository:  
-   [https://github.com/Sarim-h191/note2flash](https://github.com/Sarim-h191/note2flash)  
-   git clone https://github.com/Sarim-h191/note2flash.git  
-   cd note2flash  
+Open http://127.0.0.1:5000. In Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` and set the key in the current session with `$env:OPENAI_API_KEY='your-key-here'`.
 
-2. Install dependencies:  
-   pip install -r requirements.txt  
+The homepage works without a key. Generation requires a valid API key and available API usage. Never commit your key. The default model is `gpt-4o-mini`; `OPENAI_MODEL` can override it with a compatible Chat Completions model supporting JSON output. There is no database or saved-card feature.
 
-3. Set up your OpenAI API key as an environment variable:  
+## Repairs explained
 
-   **Mac/Linux (bash/zsh):**  
-   export OPENAI_API_KEY=your_api_key_here  
+- Flask looks in `templates/` for HTML and `static/` for CSS. Moving the files fixes missing-page and missing-style errors.
+- The API client is created when generating cards, so missing configuration does not prevent the homepage from loading.
+- Server-side checks reject blank notes, notes longer than 10,000 characters, and card counts outside 1–10. Browser checks alone can be bypassed.
+- API failures appear as form errors, not fake flashcards. A timeout bounds the service wait; raw error details are not shown.
+- JSON responses must contain the requested number of cards, each with nonempty question and answer strings. Truncated responses are rejected.
+- Only Flask and the OpenAI SDK are needed. Unused machine-learning packages were removed.
+- The local server uses localhost with debugging off by default.
 
-   **Windows (PowerShell):**  
-   setx OPENAI_API_KEY "your_api_key_here"  
+## Tests
 
-4. Run the Flask app:  
-   python app.py  
+```bash
+python -m unittest -v
+```
 
-5. Open your browser and go to:  
-   http://127.0.0.1:5000/  
+Tests cover page/CSS loading without a key, invalid inputs, oversized requests, missing configuration, successful rendering and HTML escaping, malformed/truncated AI responses, and service failures. API responses are mocked: these tests make no paid requests and do not establish live generation quality.
 
-## Results  
-- Successfully generates study-ready flashcards from lecture notes or topics  
-- Provides an interactive interface to flip and review flashcards  
-- Demonstrated usefulness for quick and effective studying  
+## Short demo
+
+1. Start the app and open the homepage.
+2. Enter “Photosynthesis converts light energy into chemical energy. Chloroplasts contain chlorophyll.” Choose 3 cards.
+3. Generate and click a card to reveal its answer. Check the answers against your notes.
+4. Explain: “Flask receives the form, validates it, requests JSON flashcards, checks their structure, and renders them.”
+5. If the API is unavailable, show the friendly error and describe the mocked tests honestly.
