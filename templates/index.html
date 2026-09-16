@@ -14,8 +14,8 @@
         </header>
         
         <main>
-            {% if error %}<p role="alert">{{ error }}</p>{% endif %}
-            <form method="POST" action="/generate" class="flashcard-form">
+            {% if error %}<p class="error-message" role="alert">{{ error }}</p>{% endif %}
+            <form method="POST" action="{{ url_for('generate') }}" class="flashcard-form">
                 <div class="form-group">
                     <label for="topic">What would you like to study?</label>
                     <textarea 

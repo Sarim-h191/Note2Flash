@@ -270,3 +270,13 @@ header p {
         height: 200px;
     }
 }
+/* Keep service and validation errors readable against the page background. */
+.error-message {
+    background: #fff1f2;
+    color: #881337;
+    border: 1px solid #fda4af;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    overflow-wrap: anywhere;
+}

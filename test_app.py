@@ -5,7 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import app
-from openai import APIConnectionError
+import httpx
+from openai import APIConnectionError, OpenAI
 
 
 class AppTests(unittest.TestCase):
@@ -62,6 +63,56 @@ class AppTests(unittest.TestCase):
             response = self.client.post('/generate', data={'topic':'biology'})
             self.assertEqual(response.status_code, 503)
             self.assertNotIn(b'secret diagnostic', response.data)
+
+
+class SDKIntegrationTests(unittest.TestCase):
+    """Exercise the real SDK against an in-memory HTTP service; no paid calls."""
+
+    def client_factory(self, handler):
+        def factory(**kwargs):
+            return OpenAI(**kwargs, http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+        return factory
+
+    def test_real_sdk_request_and_render(self):
+        def handler(request):
+            body = json.loads(request.content)
+            self.assertEqual(request.url.path, '/v1/chat/completions')
+            self.assertEqual(body['response_format'], {'type': 'json_object'})
+            self.assertIn('exactly 3', body['messages'][1]['content'])
+            return httpx.Response(200, json={
+                'id': 'test-response', 'object': 'chat.completion', 'created': 0,
+                'model': 'gpt-4o-mini',
+                'choices': [{'index': 0, 'finish_reason': 'stop', 'message': {
+                    'role': 'assistant', 'content': json.dumps({'flashcards': [
+                        {'question': f'Question {i}', 'answer': f'Answer {i}'} for i in range(3)
+                    ]})}}],
+            })
+        with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-placeholder'}), patch('app.OpenAI', side_effect=self.client_factory(handler)):
+            response = app.app.test_client().post('/generate', data={'topic': 'World War II', 'num_cards': '3'})
+            self.assertEqual(response.status_code, 200)
+            for i in range(3):
+                self.assertIn(f'Question {i}'.encode(), response.data)
+                self.assertIn(f'Answer {i}'.encode(), response.data)
+
+    def test_real_sdk_service_statuses(self):
+        for status, expected in [(401, b'API key was rejected'), (429, b'rate or usage limit'), (500, b'could not complete')]:
+            with self.subTest(status=status):
+                def handler(request):
+                    return httpx.Response(status, json={'error': {'message': 'private diagnostic', 'type': 'test_error'}})
+                with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-placeholder'}), patch('app.OpenAI', side_effect=self.client_factory(handler)):
+                    response = app.app.test_client().post('/generate', data={'topic': 'World War II'})
+                    self.assertEqual(response.status_code, 503)
+                    self.assertIn(expected, response.data)
+                    self.assertNotIn(b'private diagnostic', response.data)
+                    self.assertIn(b'World War II', response.data)
+
+    def test_real_sdk_timeout(self):
+        def handler(request):
+            raise httpx.ReadTimeout('private timeout diagnostic', request=request)
+        with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-placeholder'}), patch('app.OpenAI', side_effect=self.client_factory(handler)):
+            response = app.app.test_client().post('/generate', data={'topic': 'cells'})
+            self.assertEqual(response.status_code, 503)
+            self.assertNotIn(b'private timeout diagnostic', response.data)
 
 
 if __name__ == '__main__':
