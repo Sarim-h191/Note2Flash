@@ -1,0 +1,7 @@
+entrypoint = "app.py"
+modules = ["python-3.11"]
+run = "bash scripts/run_replit.sh"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
